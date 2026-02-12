@@ -1,0 +1,37 @@
+{
+  "app": {
+    "title": "Receipt Analyzer",
+    "subtitle": "Automatic receipt upload to spreadsheet"
+  },
+  "form": {
+    "urlLabel": "Receipt Link",
+    "urlPlaceholder": "Paste receipt link here...",
+    "submitButton": "Submit Receipt",
+    "processing": "Processing receipt...",
+    "urlError": "Please enter a valid URL",
+    "urlRequired": "Please enter a receipt URL"
+  },
+  "messages": {
+    "success": "Receipt processed successfully!",
+    "successDetails": "The receipt has been saved to the spreadsheet",
+    "error": "Error",
+    "errorGeneric": "An error occurred while processing the receipt",
+    "errorNetwork": "Network error - please check your internet connection",
+    "errorInvalidUrl": "Invalid URL",
+    "errorScraping": "Error loading receipt",
+    "errorParsing": "Error parsing receipt",
+    "errorSheets": "Error updating spreadsheet"
+  },
+  "receipt": {
+    "date": "Date",
+    "store": "Store",
+    "total": "Total",
+    "items": "Items",
+    "transactionId": "Transaction ID"
+  },
+  "language": {
+    "select": "Language",
+    "he": "עברית",
+    "en": "English"
+  }
+}

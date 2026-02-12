@@ -1,0 +1,37 @@
+{
+  "app": {
+    "title": "מנתח קבלות",
+    "subtitle": "העלאה אוטומטית של קבלות לגיליון האלקטרוני"
+  },
+  "form": {
+    "urlLabel": "קישור לקבלה",
+    "urlPlaceholder": "הדבק את הקישור לקבלה כאן...",
+    "submitButton": "שלח קבלה",
+    "processing": "מעבד קבלה...",
+    "urlError": "נא להזין קישור תקין",
+    "urlRequired": "נא להזין קישור לקבלה"
+  },
+  "messages": {
+    "success": "הקבלה עובדה בהצלחה!",
+    "successDetails": "הקבלה נשמרה בגיליון האלקטרוני",
+    "error": "שגיאה",
+    "errorGeneric": "אירעה שגיאה בעיבוד הקבלה",
+    "errorNetwork": "שגיאת תקשורת - נא לבדוק את החיבור לאינטרנט",
+    "errorInvalidUrl": "כתובת URL לא תקינה",
+    "errorScraping": "שגיאה בטעינת הקבלה",
+    "errorParsing": "שגיאה בפענוח הקבלה",
+    "errorSheets": "שגיאה בעדכון הגיליון"
+  },
+  "receipt": {
+    "date": "תאריך",
+    "store": "חנות",
+    "total": "סה״כ",
+    "items": "פריטים",
+    "transactionId": "מספר עסקה"
+  },
+  "language": {
+    "select": "שפה",
+    "he": "עברית",
+    "en": "English"
+  }
+}
