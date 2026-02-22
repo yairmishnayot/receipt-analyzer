@@ -1,0 +1,17 @@
+{
+    "$schema": "https://opencode.ai/config.json",
+    // Theme configuration
+    "theme": "opencode",
+    "model": "opencode/kimi-k2.5-free",
+    "autoupdate": true,
+    "mcp": {
+        "context7": {
+            "type": "remote",
+            "url": "https://mcp.context7.com/mcp",
+            "headers": {
+                "CONTEXT7_API_KEY": "ctx7sk-96019cda-b220-4af1-9176-1a05079a0634"
+            },
+            "enabled": false
+        }
+    }
+}
