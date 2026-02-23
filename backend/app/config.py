@@ -9,6 +9,7 @@ class Settings(BaseSettings):
 
     # Google Sheets configuration
     google_sheets_credentials_path: str = "./credentials.json"
+    google_sheets_credentials_b64: str = ""  # Base64-encoded JSON credentials (alternative to file)
     google_sheets_id: str
 
     # Scraping configuration

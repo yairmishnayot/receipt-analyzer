@@ -1,7 +1,10 @@
 """Google Sheets integration service for storing receipt data."""
 
+import base64
+import io
+import json
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Union
 import logging
 from pathlib import Path
 
@@ -96,18 +99,41 @@ class SheetsService:
             return self._service
 
         try:
-            # Load credentials
-            creds_path = Path(self.credentials_path)
-            if not creds_path.exists():
-                raise SheetsServiceError(f"Credentials file not found: {self.credentials_path}")
+            # Load credentials - either from file or base64 env var
+            credentials: Optional[Union[service_account.Credentials, dict]] = None
 
-            credentials = service_account.Credentials.from_service_account_file(
-                str(creds_path),
-                scopes=['https://www.googleapis.com/auth/spreadsheets']
-            )
+            if settings.google_sheets_credentials_b64:
+                try:
+                    creds_json = base64.b64decode(
+                        settings.google_sheets_credentials_b64
+                    ).decode('utf-8')
+                    credentials = json.loads(creds_json)
+                except Exception as e:
+                    raise SheetsServiceError(
+                        f"Failed to decode credentials from environment variable: {e}"
+                    )
+            else:
+                creds_path = Path(self.credentials_path)
+                if not creds_path.exists():
+                    raise SheetsServiceError(
+                        f"Credentials file not found: {self.credentials_path}"
+                    )
+                credentials = str(creds_path)
+
+            # Build credentials object
+            if isinstance(credentials, dict):
+                creds_obj = service_account.Credentials.from_service_account_info(
+                    credentials,
+                    scopes=['https://www.googleapis.com/auth/spreadsheets']
+                )
+            else:
+                creds_obj = service_account.Credentials.from_service_account_file(
+                    credentials,
+                    scopes=['https://www.googleapis.com/auth/spreadsheets']
+                )
 
             # Build service
-            self._service = build('sheets', 'v4', credentials=credentials)
+            self._service = build('sheets', 'v4', credentials=creds_obj)
             return self._service
 
         except Exception as e:

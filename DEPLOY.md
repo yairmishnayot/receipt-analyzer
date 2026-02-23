@@ -38,10 +38,33 @@ Add these environment variables in the Render dashboard:
 
 | Key | Value |
 |-----|-------|
-| `GOOGLE_SHEETS_CREDENTIALS_PATH` | `./credentials.json` |
 | `GOOGLE_SHEETS_ID` | Your spreadsheet ID |
 | `GEMINI_API_KEY` | Your Gemini API key |
 | `SCRAPING_TIMEOUT` | `30000` |
+| `FRONTEND_URL` | `https://your-frontend.onrender.com` |
+
+#### Option A: credentials.json file (legacy)
+
+| Key | Value |
+|-----|-------|
+| `GOOGLE_SHEETS_CREDENTIALS_PATH` | `./credentials.json` |
+
+Then upload `credentials.json` as a **Secret File** in Render:
+1. Go to your Web Service settings
+2. Under **Secret Files**, click **Add Secret File**
+3. Name: `credentials.json`
+4. Contents: Paste the full JSON content
+
+#### Option B: Environment variable (recommended)
+
+| Key | Value |
+|-----|-------|
+| `GOOGLE_SHEETS_CREDENTIALS_B64` | Base64-encoded JSON credentials |
+
+To encode your credentials.json:
+```bash
+base64 -w0 credentials.json
+```
 
 ### 3. Install Playwright Browsers
 
