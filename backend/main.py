@@ -23,9 +23,13 @@ app = FastAPI(
 )
 
 # Configure CORS
+cors_origins = list(settings.cors_origins)
+if settings.frontend_url and settings.frontend_url not in cors_origins:
+    cors_origins.append(settings.frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

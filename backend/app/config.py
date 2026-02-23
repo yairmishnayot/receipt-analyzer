@@ -24,9 +24,11 @@ class Settings(BaseSettings):
     environment: str = "development"
     api_host: str = "0.0.0.0"
     api_port: int = 8000
+    port: int = 8000  # Render provides this as an environment variable
 
     # CORS settings
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
+    frontend_url: str = ""  # Set this for production to allow CORS from your static site
 
     class Config:
         env_file = ".env"
