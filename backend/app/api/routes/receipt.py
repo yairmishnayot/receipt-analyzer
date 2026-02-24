@@ -1,7 +1,11 @@
 """API routes for receipt processing."""
 
-from fastapi import APIRouter, HTTPException, status
+import json
 import logging
+from typing import AsyncGenerator
+
+from fastapi import APIRouter, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 
 from app.models.receipt import ReceiptRequest, ReceiptResponse
 from app.services.scraper import scrape_receipt_url, ReceiptScraperError
@@ -41,7 +45,7 @@ async def process_receipt(request: ReceiptRequest):
             logger.error(f"Scraping failed: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"שגיאה בטעינת הקבלה: {str(e)}"
+                detail=f"שגיאה בטעינת הקבלה: {str(e)}",
             )
 
         # Step 2: Parse the receipt
@@ -52,7 +56,7 @@ async def process_receipt(request: ReceiptRequest):
             logger.error(f"Parsing failed: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"שגיאה בפענוח הקבלה: {str(e)}"
+                detail=f"שגיאה בפענוח הקבלה: {str(e)}",
             )
 
         # Step 3: Classify items into categories
@@ -78,7 +82,7 @@ async def process_receipt(request: ReceiptRequest):
                 message=f"קבלה זו כבר עובדה בעבר (מזהה עסקה: {receipt_data.transaction_id}). האם לעדכן?",
                 data=receipt_data,
                 is_duplicate=True,
-                duplicate_info=duplicate_info
+                duplicate_info=duplicate_info,
             )
 
         # Step 5: Update or insert into Google Sheets
@@ -104,7 +108,7 @@ async def process_receipt(request: ReceiptRequest):
             logger.error(f"Sheets update failed: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"שגיאה בעדכון הגיליון: {str(e)}"
+                detail=f"שגיאה בעדכון הגיליון: {str(e)}",
             )
 
         # Return success response
@@ -112,7 +116,7 @@ async def process_receipt(request: ReceiptRequest):
             success=True,
             message=message,
             data=receipt_data,
-            is_duplicate=bool(duplicate_info and request.force_update)
+            is_duplicate=bool(duplicate_info and request.force_update),
         )
 
     except HTTPException:
@@ -123,8 +127,7 @@ async def process_receipt(request: ReceiptRequest):
         # Catch-all for unexpected errors
         logger.exception(f"Unexpected error processing receipt: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"שגיאה בלתי צפויה: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"שגיאה בלתי צפויה: {str(e)}"
         )
 
 
@@ -136,7 +139,114 @@ async def health_check():
     Returns:
         dict: Health status
     """
-    return {
-        "status": "healthy",
-        "service": "receipt-analyzer-backend"
-    }
+    return {"status": "healthy", "service": "receipt-analyzer-backend"}
+
+
+async def process_receipt_stream(
+    url: str = Query(...), force_update: bool = Query(False)
+) -> AsyncGenerator[str, None]:
+    """
+    Process a receipt URL with streaming progress updates.
+
+    Yields:
+        SSE events with step progress information
+    """
+    logger.info(f"Processing receipt (stream): {url}")
+
+    def emit_progress(step: str, message: str, progress: int) -> str:
+        return f"data: {json.dumps({'type': 'progress', 'step': step, 'message': message, 'progress': progress})}\n\n"
+
+    try:
+        # Step 1: Scrape the receipt
+        logger.info("Scraping receipt HTML")
+        yield emit_progress("scrape", "טוען קבלה...", 20)
+        try:
+            html = await scrape_receipt_url(url, timeout=settings.scraping_timeout)
+        except ReceiptScraperError as e:
+            logger.error(f"Scraping failed: {str(e)}")
+            yield f"data: {json.dumps({'type': 'error', 'message': f'שגיאה בטעינת הקבלה: {str(e)}'})}\n\n"
+            return
+
+        # Step 2: Parse the receipt
+        logger.info("Parsing receipt data")
+        yield emit_progress("parse", "מפענח נתונים...", 40)
+        try:
+            receipt_data = parse_receipt_html(html, url)
+        except ReceiptParserError as e:
+            logger.error(f"Parsing failed: {str(e)}")
+            yield f"data: {json.dumps({'type': 'error', 'message': f'שגיאה בפענוח הקבלה: {str(e)}'})}\n\n"
+            return
+
+        # Step 3: Classify items into categories
+        logger.info("Classifying receipt items")
+        yield emit_progress("classify", "ממיין פריטים...", 60)
+        try:
+            classifier = ItemClassifier()
+            receipt_data.items = await classifier.classify_items(receipt_data.items)
+        except ItemClassifierError as e:
+            logger.error(f"Classification failed: {str(e)}")
+            logger.warning("Continuing without item categories")
+
+        # Step 4: Check for duplicates
+        logger.info("Checking for duplicate receipt")
+        yield emit_progress("check_duplicate", "בודק כפילויות...", 75)
+        sheets_service = SheetsService()
+        duplicate_info = sheets_service.check_duplicate(receipt_data.transaction_id)
+
+        if duplicate_info and not force_update:
+            logger.warning(f"Duplicate receipt found: {receipt_data.transaction_id}")
+            yield f"data: {json.dumps({'type': 'duplicate', 'message': f'קבלה זו כבר עובדה בעבר (מזהה עסקה: {receipt_data.transaction_id}). האם לעדכן?', 'data': receipt_data.model_dump(), 'duplicate_info': duplicate_info})}\n\n"
+            return
+
+        # Step 5: Update or insert into Google Sheets
+        logger.info("Updating Google Sheets")
+        yield emit_progress("sheets", "שומר בגיליון...", 90)
+        try:
+            if duplicate_info and force_update:
+                logger.info(f"Updating existing receipt: {receipt_data.transaction_id}")
+                update_result = await sheets_service.update_existing_receipt(receipt_data)
+                message = "הקבלה עודכנה בהצלחה בגיליון"
+            else:
+                logger.info(f"Inserting new receipt: {receipt_data.transaction_id}")
+                update_result = await sheets_service.update_sheets(receipt_data)
+                message = "הקבלה עובדה בהצלחה ונשמרה בגיליון"
+
+            if not update_result.success:
+                raise SheetsServiceError(update_result.message)
+
+            logger.info(f"Successfully processed receipt: {receipt_data.transaction_id}")
+
+        except SheetsServiceError as e:
+            logger.error(f"Sheets update failed: {str(e)}")
+            yield f"data: {json.dumps({'type': 'error', 'message': f'שגיאה בעדכון הגיליון: {str(e)}'})}\n\n"
+            return
+
+        # Success
+        yield emit_progress("complete", "הושלם!", 100)
+        yield f"data: {json.dumps({'type': 'complete', 'message': message, 'data': receipt_data.model_dump(), 'is_duplicate': bool(duplicate_info and force_update)})}\n\n"
+
+    except Exception as e:
+        logger.exception(f"Unexpected error processing receipt: {str(e)}")
+        yield f"data: {json.dumps({'type': 'error', 'message': f'שגיאה בלתי צפויה: {str(e)}'})}\n\n"
+
+
+@router.get("/process/stream")
+async def process_receipt_stream_endpoint(url: str = Query(...), force_update: bool = Query(False)):
+    """
+    Process a receipt URL with streaming progress updates.
+
+    Args:
+        url: Receipt URL to process
+        force_update: Force update if duplicate found
+
+    Returns:
+        StreamingResponse with SSE events
+    """
+    return StreamingResponse(
+        process_receipt_stream(url, force_update),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        },
+    )
