@@ -9,7 +9,20 @@
     "submitButton": "Submit Receipt",
     "processing": "Processing receipt...",
     "urlError": "Please enter a valid URL",
-    "urlRequired": "Please enter a receipt URL"
+    "urlRequired": "Please enter a receipt URL",
+    "steps": {
+      "scrape": "Loading receipt",
+      "parse": "Parsing data",
+      "classify": "Categorizing items",
+      "check_duplicate": "Checking duplicates",
+      "sheets": "Saving to sheet",
+      "complete": "Complete",
+      "loading": "Loading receipt...",
+      "parsing": "Parsing data...",
+      "classifying": "Categorizing items...",
+      "checking": "Checking duplicates...",
+      "saving": "Saving to sheet..."
+    }
   },
   "messages": {
     "success": "Receipt processed successfully!",

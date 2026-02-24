@@ -1,17 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { processReceipt } from '../services/api';
-import LoadingSpinner from './LoadingSpinner';
+import useReceiptStream from '../hooks/useReceiptStream';
+import ProcessingProgress from './ProcessingProgress';
 import ErrorDisplay from './ErrorDisplay';
 import '../styles/ReceiptForm.css';
 
 const ReceiptForm = () => {
   const { t } = useTranslation();
   const [url, setUrl] = useState('');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false);
-  const [duplicateWarning, setDuplicateWarning] = useState(null);
+  const {
+    loading,
+    progress,
+    currentStep,
+    success,
+    duplicateWarning,
+    processReceipt,
+    reset,
+  } = useReceiptStream();
+
+  useEffect(() => {
+    if (success) {
+      setUrl('');
+      const timer = setTimeout(() => reset(), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success, reset]);
 
   const validateUrl = (urlString) => {
     try {
@@ -25,12 +39,9 @@ const ReceiptForm = () => {
   const handleSubmit = async (e, forceUpdate = false) => {
     e.preventDefault();
 
-    // Reset states
+    reset();
     setError(null);
-    setSuccess(false);
-    setDuplicateWarning(null);
 
-    // Validate URL
     if (!url.trim()) {
       setError(t('form.urlRequired'));
       return;
@@ -41,43 +52,18 @@ const ReceiptForm = () => {
       return;
     }
 
-    // Process receipt
-    setLoading(true);
-
-    try {
-      const result = await processReceipt(url, forceUpdate);
-
-      if (result.success) {
-        setSuccess(true);
-        setUrl(''); // Clear form
-        // Auto-dismiss success after 5 seconds
-        setTimeout(() => setSuccess(false), 5000);
-      } else if (result.is_duplicate) {
-        // Show duplicate warning
-        setDuplicateWarning({
-          message: result.message,
-          data: result.data,
-          duplicateInfo: result.duplicate_info
-        });
-      } else {
-        setError(result.error || result.message);
-      }
-    } catch (err) {
-      setError(t('messages.errorGeneric'));
-    } finally {
-      setLoading(false);
-    }
+    await processReceipt(url, forceUpdate);
   };
 
   const handleConfirmUpdate = async () => {
     setDuplicateWarning(null);
-    // Re-submit with force_update=true
     const fakeEvent = { preventDefault: () => {} };
     await handleSubmit(fakeEvent, true);
   };
 
   const handleCancelUpdate = () => {
     setDuplicateWarning(null);
+    reset();
   };
 
   const handleDismissError = () => {
@@ -116,7 +102,9 @@ const ReceiptForm = () => {
           </button>
         </form>
 
-        {loading && <LoadingSpinner />}
+        {loading && (
+          <ProcessingProgress currentStep={currentStep} progress={progress} />
+        )}
 
         {error && <ErrorDisplay error={error} onDismiss={handleDismissError} />}
 
@@ -137,10 +125,10 @@ const ReceiptForm = () => {
               <strong>קבלה כפולה</strong>
             </div>
             <p className="warning-message">{duplicateWarning.message}</p>
-            {duplicateWarning.duplicateInfo && (
+            {duplicateWarning.duplicate_info && (
               <div className="duplicate-details">
-                <p>שורת סיכום: {duplicateWarning.duplicateInfo.summary_row}</p>
-                <p>מספר פריטים: {duplicateWarning.duplicateInfo.item_rows?.length || 0}</p>
+                <p>שורת סיכום: {duplicateWarning.duplicate_info.summary_row}</p>
+                <p>מספר פריטים: {duplicateWarning.duplicate_info.item_rows?.length || 0}</p>
               </div>
             )}
             <div className="warning-actions">

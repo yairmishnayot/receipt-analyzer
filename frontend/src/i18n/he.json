@@ -9,7 +9,20 @@
     "submitButton": "שלח קבלה",
     "processing": "מעבד קבלה...",
     "urlError": "נא להזין קישור תקין",
-    "urlRequired": "נא להזין קישור לקבלה"
+    "urlRequired": "נא להזין קישור לקבלה",
+    "steps": {
+      "scrape": "טוען קבלה",
+      "parse": "מפענח נתונים",
+      "classify": "ממיין פריטים",
+      "check_duplicate": "בודק כפילויות",
+      "sheets": "שומר בגיליון",
+      "complete": "הושלם",
+      "loading": "טוען קבלה...",
+      "parsing": "מפענח נתונים...",
+      "classifying": "ממיין פריטים...",
+      "checking": "בודק כפילויות...",
+      "saving": "שומר בגיליון..."
+    }
   },
   "messages": {
     "success": "הקבלה עובדה בהצלחה!",
