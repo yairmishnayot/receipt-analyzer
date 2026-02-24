@@ -27,7 +27,7 @@ Simple step-by-step guide to deploy Receipt Analyzer.
    | Region | Closest to you |
    | Branch | `main` |
    | Runtime | `Python 3` |
-   | Build Command | `pip install -r requirements.txt && python -m playwright install chromium` |
+   | Build Command | `pip install -r requirements.txt` |
    | Start Command | `python -m playwright install chromium && uvicorn main:app --host 0.0.0.0 --port $PORT` |
 
 5. Add Environment Variable:
